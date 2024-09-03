@@ -113,19 +113,15 @@ func (watcher *Tailer) run() {
 		for {
 			select {
 			case event, ok := <-watcher.fileWatcher.Events:
-				watched := watcher.watchedFiles[event.Name]
-
 				if !ok {
 					return
 				}
+
+				watched := watcher.watchedFiles[event.Name]
 				switch {
 				case event.Op.Has(fsnotify.Write):
 					watcher.tail(watched)
 				case event.Op == fsnotify.Chmod:
-					// ignored
-				case event.Op.Has(fsnotify.Rename):
-					// log.Printf("%s was renamed, watching again\n", event.Name)
-					watcher.fileWatcher.Add(event.Name)
 				}
 
 			case err, ok := <-watcher.fileWatcher.Errors:
@@ -145,19 +141,10 @@ func (watcher *Tailer) run() {
 					return
 				}
 				switch {
-				case event.Op.Has(fsnotify.Write):
-					// ignore
-				case event.Op == fsnotify.Chmod:
-					// ignored
 				case event.Op.Has(fsnotify.Rename):
-					// log.Printf("dir watcher - %s was renamed\n", event.Name)
 					watcher.addFile(event.Name, false)
 				case event.Op.Has(fsnotify.Create) && watcher.watchingFile[event.Name]:
-					// log.Printf("dir watcher - %s was created\n", event.Name)
 					watcher.addFile(event.Name, false)
-
-					// default:
-					// 	log.Println("dir watcher - ", event.Name, event.Op)
 				}
 
 			case err, ok := <-watcher.dirWatcher.Errors:
