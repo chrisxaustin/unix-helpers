@@ -5,14 +5,14 @@ import (
 	"time"
 )
 
-type Timeout struct {
+type IdleTimer struct {
 	timeout time.Duration
 	timer   *time.Timer
 	reset   chan bool
 }
 
-func NewTimeout(delay time.Duration) *Timeout {
-	timeout := Timeout{
+func NewIdleTimer(delay time.Duration) *IdleTimer {
+	timeout := IdleTimer{
 		timeout: delay,
 		timer:   time.NewTimer(delay),
 		reset:   make(chan bool),
@@ -21,19 +21,19 @@ func NewTimeout(delay time.Duration) *Timeout {
 	return &timeout
 }
 
-func (self *Timeout) run() {
+func (idleTimer *IdleTimer) run() {
 	activityStarted := false
 	go func() {
 		for {
 			select {
-			case <-self.timer.C:
+			case <-idleTimer.timer.C:
 				if activityStarted {
 					fmt.Println("----------------------------------------")
 				}
 
-			case <-self.reset:
+			case <-idleTimer.reset:
 				activityStarted = true
-				self.timer.Reset(self.timeout)
+				idleTimer.timer.Reset(idleTimer.timeout)
 			}
 		}
 	}()

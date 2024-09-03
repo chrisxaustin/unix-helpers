@@ -12,7 +12,7 @@ import (
 )
 
 func usage() {
-	fmt.Errorf("Usage: tf <filename>\n")
+	_ = fmt.Errorf("usage: tf <filename>")
 }
 
 func (watcher *Tailer) tail(fh *os.File) {
@@ -33,7 +33,7 @@ type Tailer struct {
 	watchingFile map[string]bool
 	fileWatcher  *fsnotify.Watcher
 	dirWatcher   *fsnotify.Watcher
-	idleTimeout  *Timeout
+	idleTimeout  *IdleTimer
 }
 
 func NewWatcher(timeout time.Duration) (*Tailer, bool) {
@@ -41,7 +41,7 @@ func NewWatcher(timeout time.Duration) (*Tailer, bool) {
 		watchingDir:  make(map[string]bool),
 		watchingFile: make(map[string]bool),
 		watchedFiles: make(map[string]*os.File),
-		idleTimeout:  NewTimeout(timeout),
+		idleTimeout:  NewIdleTimer(timeout),
 	}
 	var err error
 	watcher.fileWatcher, err = fsnotify.NewWatcher()
@@ -82,7 +82,7 @@ func (watcher *Tailer) addFile(name string, seek bool) {
 	watcher.openFile(name, seek)
 	watcher.fileWatcher.Add(name)
 	parent := filepath.Dir(name)
-	if watcher.watchingDir[parent] == false {
+	if !watcher.watchingDir[parent] {
 		watcher.watchingDir[parent] = true
 		watcher.dirWatcher.Add(parent)
 	}
