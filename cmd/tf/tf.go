@@ -41,7 +41,9 @@ func NewWatcher(timeout time.Duration) (*Tailer, bool) {
 		watchingDir:  make(map[string]bool),
 		watchingFile: make(map[string]bool),
 		watchedFiles: make(map[string]*os.File),
-		idleTimeout:  NewIdleTimer(timeout),
+		idleTimeout: NewIdleTimer(timeout, func() {
+			fmt.Println("----------------------------------------")
+		}),
 	}
 	var err error
 	watcher.fileWatcher, err = fsnotify.NewWatcher()
