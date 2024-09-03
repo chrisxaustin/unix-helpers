@@ -12,7 +12,7 @@ import (
 )
 
 func usage() {
-	_ = fmt.Errorf("usage: tf <filename>")
+	fmt.Println("usage: tf <filename>")
 }
 
 func (watcher *Tailer) tail(fh *os.File) {
@@ -172,5 +172,4 @@ func main() {
 
 	// wait for main goroutine
 	<-make(chan struct{})
-
 }
