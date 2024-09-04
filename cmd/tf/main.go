@@ -17,7 +17,7 @@ func main() {
 		return
 	}
 
-	watcher, _ := NewWatcher(5 * time.Second)
+	watcher, _ := NewTailer(5 * time.Second)
 	defer watcher.close()
 	watcher.addFiles(args)
 	watcher.run()

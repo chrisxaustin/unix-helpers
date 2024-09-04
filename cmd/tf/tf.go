@@ -3,9 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/fsnotify/fsnotify"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -27,30 +25,29 @@ type Tailer struct {
 	watchedFiles map[string]*os.File
 	watchingDir  map[string]bool
 	watchingFile map[string]bool
-	fileWatcher  *fsnotify.Watcher
-	dirWatcher   *fsnotify.Watcher
+	fileCreated  chan string
+	fileUpdated  chan string
+	fileWatcher  *FileWatcher
+	dirWatcher   *DirWatcher
 	idleTimeout  *IdleTimer
 }
 
-func NewWatcher(timeout time.Duration) (*Tailer, bool) {
+func NewTailer(timeout time.Duration) (*Tailer, bool) {
+	fileCreatedChannel := make(chan string)
+	fileUpdatedChannel := make(chan string)
+
 	watcher := Tailer{
 		watchingDir:  make(map[string]bool),
 		watchingFile: make(map[string]bool),
 		watchedFiles: make(map[string]*os.File),
+		fileCreated:  fileCreatedChannel,
+		fileUpdated:  fileUpdatedChannel,
+		fileWatcher:  NewFileWatcher(fileCreatedChannel, fileUpdatedChannel),
+		dirWatcher:   NewDirWatcher(fileCreatedChannel),
 		idleTimeout: NewIdleTimer(timeout, func() {
 			fmt.Println("----------------------------------------")
 		}),
 	}
-	var err error
-	watcher.fileWatcher, err = fsnotify.NewWatcher()
-	if err != nil {
-		return nil, false
-	}
-	watcher.dirWatcher, err = fsnotify.NewWatcher()
-	if err != nil {
-		return nil, false
-	}
-
 	return &watcher, true
 }
 
@@ -60,7 +57,6 @@ func (watcher *Tailer) openFile(name string, seek bool) bool {
 	if err != nil {
 		return false
 	}
-	// defer fh.Close()
 
 	if seek {
 		_, err = fh.Seek(0, io.SeekEnd)
@@ -78,11 +74,11 @@ func (watcher *Tailer) openFile(name string, seek bool) bool {
 func (watcher *Tailer) addFile(name string, seek bool) {
 	watcher.watchingFile[name] = true
 	watcher.openFile(name, seek)
-	watcher.fileWatcher.Add(name)
+	watcher.fileWatcher.watcher.Add(name)
 	parent := filepath.Dir(name)
 	if !watcher.watchingDir[parent] {
 		watcher.watchingDir[parent] = true
-		watcher.dirWatcher.Add(parent)
+		watcher.dirWatcher.watcher.Add(parent)
 	}
 }
 
@@ -108,46 +104,19 @@ func (watcher *Tailer) run() {
 	go func() {
 		for {
 			select {
-			case event, ok := <-watcher.fileWatcher.Events:
+			case filename, ok := <-watcher.fileUpdated:
 				if !ok {
 					return
 				}
-
-				watched := watcher.watchedFiles[event.Name]
-				switch {
-				case event.Op.Has(fsnotify.Write):
-					watcher.tail(watched)
-				case event.Op == fsnotify.Chmod:
-				}
-
-			case err, ok := <-watcher.fileWatcher.Errors:
+				watched := watcher.watchedFiles[filename]
+				watcher.tail(watched)
+			case filename, ok := <-watcher.fileCreated:
 				if !ok {
 					return
 				}
-				log.Println("error:", err)
-			}
-		}
-	}()
-
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.dirWatcher.Events:
-				if !ok {
-					return
+				if watcher.watchingFile[filename] {
+					watcher.addFile(filename, false)
 				}
-				switch {
-				case event.Op.Has(fsnotify.Rename):
-					watcher.addFile(event.Name, false)
-				case event.Op.Has(fsnotify.Create) && watcher.watchingFile[event.Name]:
-					watcher.addFile(event.Name, false)
-				}
-
-			case err, ok := <-watcher.dirWatcher.Errors:
-				if !ok {
-					return
-				}
-				log.Println("error:", err)
 			}
 		}
 	}()
