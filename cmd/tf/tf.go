@@ -42,7 +42,7 @@ func NewTailer(timeout time.Duration) (*Tailer, bool) {
 		watchedFiles: make(map[string]*os.File),
 		fileCreated:  fileCreatedChannel,
 		fileUpdated:  fileUpdatedChannel,
-		fileWatcher:  NewFileWatcher(fileCreatedChannel, fileUpdatedChannel),
+		fileWatcher:  NewFileWatcher(fileUpdatedChannel),
 		dirWatcher:   NewDirWatcher(fileCreatedChannel),
 		idleTimeout: NewIdleTimer(timeout, func() {
 			fmt.Println("----------------------------------------")

@@ -7,11 +7,10 @@ import (
 
 type FileWatcher struct {
 	watcher     *fsnotify.Watcher
-	fileCreated chan string
 	fileUpdated chan string
 }
 
-func NewFileWatcher(fileCreated chan string, fileUpdated chan string) *FileWatcher {
+func NewFileWatcher(fileUpdated chan string) *FileWatcher {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil
@@ -19,7 +18,6 @@ func NewFileWatcher(fileCreated chan string, fileUpdated chan string) *FileWatch
 
 	fw := FileWatcher{
 		watcher:     w,
-		fileCreated: fileCreated,
 		fileUpdated: fileUpdated,
 	}
 	fw.run()
