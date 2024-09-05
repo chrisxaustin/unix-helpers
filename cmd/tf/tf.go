@@ -77,6 +77,10 @@ func (watcher *Tailer) openFile(name string, seek bool) bool {
 			return false
 		}
 	}
+	existing_fh := watcher.watchedFiles[name]
+	if existing_fh != nil {
+		existing_fh.Close()
+	}
 	watcher.watchedFiles[name] = fh
 	if !seek {
 		watcher.tail(fh)
