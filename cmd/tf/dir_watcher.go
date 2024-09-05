@@ -14,10 +14,10 @@ type DirWatcher struct {
 	fileCreated chan string
 }
 
-func NewDirWatcher(fileChanges chan string) *DirWatcher {
+func NewDirWatcher(fileChanges chan string) (*DirWatcher, error) {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	dw := DirWatcher{
@@ -26,7 +26,7 @@ func NewDirWatcher(fileChanges chan string) *DirWatcher {
 	}
 
 	dw.run()
-	return &dw
+	return &dw, nil
 }
 
 func (watcher *DirWatcher) run() {

@@ -14,10 +14,10 @@ type FileWatcher struct {
 	fileUpdated chan string
 }
 
-func NewFileWatcher(fileUpdated chan string) *FileWatcher {
+func NewFileWatcher(fileUpdated chan string) (*FileWatcher, error) {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	fw := FileWatcher{
@@ -25,7 +25,7 @@ func NewFileWatcher(fileUpdated chan string) *FileWatcher {
 		fileUpdated: fileUpdated,
 	}
 	fw.run()
-	return &fw
+	return &fw, nil
 }
 
 func (watcher *FileWatcher) run() {

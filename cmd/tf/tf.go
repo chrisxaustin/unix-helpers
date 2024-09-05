@@ -37,7 +37,7 @@ type Tailer struct {
 	idleTimeout  *IdleTimer
 }
 
-func NewTailer(timeout time.Duration) (*Tailer, bool) {
+func NewTailer(timeout time.Duration) (*Tailer, error) {
 	fileCreatedChannel := make(chan string)
 	fileUpdatedChannel := make(chan string)
 
@@ -47,13 +47,21 @@ func NewTailer(timeout time.Duration) (*Tailer, bool) {
 		watchedFiles: make(map[string]*os.File),
 		fileCreated:  fileCreatedChannel,
 		fileUpdated:  fileUpdatedChannel,
-		fileWatcher:  NewFileWatcher(fileUpdatedChannel),
-		dirWatcher:   NewDirWatcher(fileCreatedChannel),
 		idleTimeout: NewIdleTimer(timeout, func() {
 			fmt.Println("----------------------------------------")
 		}),
 	}
-	return &watcher, true
+	var err error
+	watcher.fileWatcher, err = NewFileWatcher(fileUpdatedChannel)
+	if err != nil {
+		return nil, err
+	}
+	watcher.dirWatcher, err = NewDirWatcher(fileCreatedChannel)
+	if err != nil {
+		return nil, err
+	}
+
+	return &watcher, nil
 }
 
 func (watcher *Tailer) openFile(name string, seek bool) bool {
