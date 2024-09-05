@@ -1,3 +1,8 @@
+// Tailer behaves similarly to `tail -F`, but with an idle timeout that prints a row of dashes if there is no activity for 5s.
+//
+// This relies on FileWatcher to publish the names of changed files, and DirWatcher to publish the names of created files.
+// File rotation is handled automatically, and the user can start following a file before it exists.
+
 package main
 
 import (
@@ -92,12 +97,8 @@ func (watcher *Tailer) close() {
 	for _, watched := range watcher.watchedFiles {
 		watched.Close()
 	}
-	if watcher.fileWatcher != nil {
-		watcher.fileWatcher.Close()
-	}
-	if watcher.dirWatcher != nil {
-		watcher.dirWatcher.Close()
-	}
+	watcher.fileWatcher.Close()
+	watcher.dirWatcher.Close()
 }
 
 func (watcher *Tailer) run() {

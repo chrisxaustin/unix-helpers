@@ -1,3 +1,7 @@
+// FileWatcher uses fsnotify to listen for changes to any of the monitored files.
+//
+// When a Write event is observed it will send the name of the file to the fileUpdated channel.
+
 package main
 
 import (
@@ -35,7 +39,6 @@ func (watcher *FileWatcher) run() {
 				switch {
 				case event.Op.Has(fsnotify.Write):
 					watcher.fileUpdated <- event.Name
-				case event.Op == fsnotify.Chmod:
 				}
 
 			case err, ok := <-watcher.watcher.Errors:

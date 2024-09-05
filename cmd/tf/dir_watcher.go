@@ -1,3 +1,7 @@
+// DirWatcher uses fsnotify to listen for changes within any of the observed directories.
+//
+// When a Create or Rename event is observed it will send the name of the file to the fileCreated channel.
+
 package main
 
 import (
