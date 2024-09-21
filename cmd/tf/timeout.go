@@ -7,15 +7,15 @@ import (
 type IdleTimer struct {
 	timeout  time.Duration
 	timer    *time.Timer
-	reset    chan bool
+	textSeen <-chan bool
 	callback func()
 }
 
-func NewIdleTimer(delay time.Duration, callback func()) *IdleTimer {
+func NewIdleTimer(delay time.Duration, textSeen <-chan bool, callback func()) *IdleTimer {
 	timeout := IdleTimer{
 		timeout:  delay,
 		timer:    time.NewTimer(delay),
-		reset:    make(chan bool),
+		textSeen: textSeen,
 		callback: callback,
 	}
 	timeout.run()
@@ -32,7 +32,7 @@ func (idleTimer *IdleTimer) run() {
 					idleTimer.callback()
 				}
 
-			case <-idleTimer.reset:
+			case <-idleTimer.textSeen:
 				activityStarted = true
 				idleTimer.timer.Reset(idleTimer.timeout)
 			}
