@@ -1,4 +1,4 @@
-// Tailer behaves similarly to `tail -F`, but with an idle timeout that prints a row of dashes if there is no textSeen for 5s.
+// Tailer behaves similarly to `tail -F`, but with an idle timeout that prints a row of dashes if there is no activity for 5s.
 //
 // This relies on FileWatcher to publish the names of changed files, and DirWatcher to publish the names of created files.
 // File rotation is handled automatically, and the user can start following a file before it exists.
@@ -15,15 +15,21 @@ import (
 )
 
 func (watcher *Tailer) tail(fh *os.File) {
-	watcher.textSeen <- true
 	scanner := bufio.NewScanner(fh)
 	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-		watcher.textSeen <- true
+		watcher.activity <- Activity{
+			file: fh.Name(),
+			text: scanner.Text(),
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Error reading file:", err)
 	}
+}
+
+type Activity struct {
+	file string
+	text string
 }
 
 type Tailer struct {
@@ -34,14 +40,14 @@ type Tailer struct {
 	fileUpdated  <-chan string
 	fileWatcher  *FileWatcher
 	dirWatcher   *DirWatcher
-	idleTimeout  *IdleTimer
-	textSeen     chan<- bool
+	activity     chan Activity
+	timeout      time.Duration
 }
 
 func NewTailer(timeout time.Duration) (*Tailer, error) {
 	fileCreatedChannel := make(chan string)
 	fileUpdatedChannel := make(chan string)
-	textSeenChannel := make(chan bool)
+	activityChannel := make(chan Activity, 1)
 
 	watcher := Tailer{
 		watchingDir:  make(map[string]bool),
@@ -49,10 +55,8 @@ func NewTailer(timeout time.Duration) (*Tailer, error) {
 		watchedFiles: make(map[string]*os.File),
 		fileCreated:  fileCreatedChannel,
 		fileUpdated:  fileUpdatedChannel,
-		idleTimeout: NewIdleTimer(timeout, textSeenChannel, func() {
-			fmt.Println("----------------------------------------")
-		}),
-		textSeen: textSeenChannel,
+		activity:     activityChannel,
+		timeout:      timeout,
 	}
 	var err error
 	watcher.fileWatcher, err = NewFileWatcher(fileUpdatedChannel)
@@ -132,6 +136,26 @@ func (watcher *Tailer) run() {
 				}
 				if watcher.watchingFile[filename] {
 					watcher.addFile(filename, false)
+				}
+			}
+		}
+	}()
+
+	activitySeen := false
+
+	go func() {
+		for {
+			select {
+			case activity, ok := <-watcher.activity:
+				if !ok {
+					return
+				}
+				activitySeen = true
+				fmt.Println(activity.text)
+			case <-time.NewTimer(watcher.timeout).C:
+				if activitySeen {
+					fmt.Println("----------------------------------------")
+					activitySeen = false
 				}
 			}
 		}
