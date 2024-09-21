@@ -11,10 +11,10 @@ import (
 
 type FileWatcher struct {
 	watcher     *fsnotify.Watcher
-	fileUpdated chan string
+	fileUpdated chan<- string
 }
 
-func NewFileWatcher(fileUpdated chan string) (*FileWatcher, error) {
+func NewFileWatcher(fileUpdated chan<- string) (*FileWatcher, error) {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err

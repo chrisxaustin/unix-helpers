@@ -11,10 +11,10 @@ import (
 
 type DirWatcher struct {
 	watcher     *fsnotify.Watcher
-	fileCreated chan string
+	fileCreated chan<- string
 }
 
-func NewDirWatcher(fileChanges chan string) (*DirWatcher, error) {
+func NewDirWatcher(fileChanges chan<- string) (*DirWatcher, error) {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err

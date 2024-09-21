@@ -30,8 +30,8 @@ type Tailer struct {
 	watchedFiles map[string]*os.File
 	watchingDir  map[string]bool
 	watchingFile map[string]bool
-	fileCreated  chan string
-	fileUpdated  chan string
+	fileCreated  <-chan string
+	fileUpdated  <-chan string
 	fileWatcher  *FileWatcher
 	dirWatcher   *DirWatcher
 	idleTimeout  *IdleTimer
